@@ -3,6 +3,23 @@ import alpaca_trade_api as tradeapi
 import json
 import datetime
 import pytz
+from datetime import timedelta
+import yfinance as yf
+
+def get_recent_weekdays():
+        today = datetime.datetime.today().date()
+        if today.weekday() == 5:
+            today = today - timedelta(days=1)
+            yesterday = today - timedelta(days=1)
+        elif today.weekday() == 6:
+            today = today - timedelta(days=2)
+            yesterday = today - timedelta(days=1)
+        elif today.weekday() == 0:
+            yesterday = today - timedelta(days=3)
+        else:
+            yesterday = today - timedelta(days=1)
+
+        return today, yesterday
 
 class AlpacaBroker(): 
     def __init__(self, config_json : str): 
@@ -19,8 +36,8 @@ class AlpacaBroker():
         self.portfolio_value = 0.0
         self.buying_power = self.get_bp()
 
-        self.market_open_time = datetime.time(9, 30)
-        self.market_close_time = datetime.time(16, 0)
+        self.market_open_time = datetime.time(hour=9, minute=30)
+        self.market_close_time = datetime.time(hour=16, minute=0)
 
     def is_market_open(self):
         current_time_utc = datetime.datetime.now(pytz.utc)
@@ -61,22 +78,33 @@ class AlpacaBroker():
                 print(f"[ERROR] Failed to sell {qty} shares of {ticker}: {e}")
         else:
             print("[INFO] Market is closed. Unable to execute sell order.")
-        
-    def get_ticker_price(self, ticker: str):
-        try:
-            trade = self.api.get_latest_trade(ticker)
-            return trade.price
-        except Exception as e:
-            print(f"Failed to get ticker price for {ticker}: {e}")
-    
+
     def get_positons(self): 
-        current_position = []
+        current_position = {}
         
         positions = self.api.list_positions()
         for position in positions: 
-            current_position.append([position.symbol, position.qty, position.avg_entry_price, position.current_price, position.market_value])
+            current_position[position.symbol] = [position.qty, position.avg_entry_price, position.current_price, position.market_value]
             self.portfolio_value += float(position.market_value)
         return current_position
     
     def get_bp(self): 
         return self.api.get_account().buying_power
+
+    def get_prices(self, ticker: str):
+        """
+        Retrieves yesterday's closing price and today's current price using yfinance.
+        """
+        today, yesterday = get_recent_weekdays()
+
+        ticker_data = yf.Ticker(ticker)
+        data = ticker_data.history(start=yesterday, end=today + timedelta(days=1))
+
+        if len(data) < 2:
+            print(f"[ERROR] Not enough data for {ticker}")
+            return None, None
+
+        yesterday_close = data['Close'].iloc[-2]
+        today_close = data['Close'].iloc[-1]
+
+        return yesterday_close, today_close, today_close/yesterday_close
