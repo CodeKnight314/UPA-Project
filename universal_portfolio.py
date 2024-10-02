@@ -2,7 +2,7 @@ from broker_api import AlpacaBroker
 import alpaca_trade_api as tradeapi
 import os
 
-class model():
+class UPA():
     def __init__(self, output_dir : str, config_json : str):
         self.broker = AlpacaBroker(config_json=config_json)
 
@@ -12,10 +12,14 @@ class model():
         self.ticker = ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'META', 'TSLA', 'ADBE', 'CSCO', 'SQ', 'NET']
         
         stock_prices = [self.broker.get_prices(ticker) for ticker  in self.ticker]
+        
         self.yester_close = [ticker[0] for ticker in stock_prices]
         self.today_close = [ticker[1] for ticker in stock_prices]
         self.price_change = [ticker[2] for ticker in stock_prices]
-        self.current_value = [self.broker.positions[ticker][0] for ticker in self.ticker]
+        
+        self.current_qty = [float(self.broker.positions[ticker][0]) for ticker in self.ticker]
+        self.current_value = [price * qty for price, qty in zip(self.today_close, self.current_qty)]
+        self.current_price = self.today_close
         
         self.weights = self.weight_allocation()
         
@@ -23,7 +27,7 @@ class model():
         if(os.path.isfile(self.output_logs)):
             with open(self.output_logs, 'r') as f:
                 line = f.readline().split(" ")
-            weights = [int(stock) for stock in line] 
+            weights = [float(stock) for stock in line]
         else:
             weights = [1/len(self.ticker) for _ in range(len(self.ticker))]
             
@@ -39,29 +43,14 @@ class model():
             sum+=new_weight
         
         new_weights = [round(new_weight/sum, 5) for new_weight in new_weights]
-        
         portfolio_value = self.broker.portfolio_value
-        
         self.target_value = [weight * portfolio_value for weight in new_weights]
         
-        operation = [(target - current)/(current) for target, current in zip(self.target_value, self.current_value)]
+        operation = [(target - current)/(price) for target, current, price in zip(self.target_value, self.current_value, self.current_price)]
         
         for ticker, op in zip(self.ticker, operation):
             if(op > 0):
                 self.broker.buy(ticker, op)
             else: 
                 self.broker.sell(ticker, op)
-                
-        file = open(self.output_logs, "w")
-        for weight, ticker in zip(new_weights, self.ticker):
-            file.write(f"{weight} ")
-        file.close()
-    
-if __name__ == "__main__":
-    upa = model("fuck", "/Users/richardtang/Desktop/UPA-Project/configs.json")
-    print(upa.yester_close)
-    print(upa.today_close)
-    print(upa.weights)
-    upa.weight_adjustment()
-    print(upa.new_weights)
     
