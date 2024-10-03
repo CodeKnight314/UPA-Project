@@ -7,19 +7,19 @@ from datetime import timedelta
 import yfinance as yf
 
 def get_recent_weekdays():
-        today = datetime.datetime.today().date()
-        if today.weekday() == 5:
-            today = today - timedelta(days=1)
-            yesterday = today - timedelta(days=1)
-        elif today.weekday() == 6:
-            today = today - timedelta(days=2)
-            yesterday = today - timedelta(days=1)
-        elif today.weekday() == 0:
-            yesterday = today - timedelta(days=3)
-        else:
-            yesterday = today - timedelta(days=1)
+    today = datetime.datetime.today().date() - timedelta(days=1)
+    if today.weekday() == 5:
+        today = today - timedelta(days=1)
+        yesterday = today - timedelta(days=1)
+    elif today.weekday() == 6:
+        today = today - timedelta(days=2)
+        yesterday = today - timedelta(days=1)
+    elif today.weekday() == 0:
+        yesterday = today - timedelta(days=3)
+    else:
+        yesterday = today - timedelta(days=1)
 
-        return today, yesterday
+    return today, yesterday
 
 class AlpacaBroker(): 
     def __init__(self, config_json : str): 
@@ -32,8 +32,9 @@ class AlpacaBroker():
         
         self.api = tradeapi.REST(self.api_key, self.secret_keys, self.url, api_version='v2')
         
-        self.positions = self.get_positons()
         self.portfolio_value = 0.0
+        
+        self.positions = self.get_positons()
         self.buying_power = self.get_bp()
 
         self.market_open_time = datetime.time(hour=9, minute=30)
@@ -48,36 +49,44 @@ class AlpacaBroker():
         return self.market_open_time <= current_time_et <= self.market_close_time
 
     def buy_order(self, ticker: str, qty: float):
-        if self.is_market_open():
-            try:
-                self.api.submit_order(
-                    symbol=ticker,
-                    qty=qty,
-                    side="buy",
-                    type="market",
-                    time_in_force='gtc'
-                )
-                print(f"[INFO] Successfully purchased {qty} shares of {ticker}")
-            except Exception as e:
-                print(f"[ERROR] Failed to purchase {qty} shares of {ticker}: {e}")
-        else:
-            print("[INFO] Market is closed. Unable to execute buy order.")
+        try:
+            if self.is_market_open():
+                order_type = "market"
+                time_in_force = "day"
+            else:
+                order_type = "market"
+                time_in_force = "opg" 
+
+            self.api.submit_order(
+                symbol=ticker,
+                qty=qty,
+                side="buy",
+                type=order_type,
+                time_in_force=time_in_force 
+            )
+            print(f"[INFO] Successfully placed buy order for {qty} shares of {ticker}")
+        except Exception as e:
+            print(f"[ERROR] Failed to purchase {qty} shares of {ticker}: {e}")
     
     def sell_order(self, ticker : str, qty : float): 
-        if self.is_market_open():
-            try:
-                self.api.submit_order(
-                    symbol=ticker, 
-                    qty=qty, 
-                    side="sell", 
-                    type="market", 
-                    time_in_force="gtc"
-                )
-                print(f"[INFO] Successfully sold {qty} shares of {ticker}")
-            except Exception as e:
-                print(f"[ERROR] Failed to sell {qty} shares of {ticker}: {e}")
-        else:
-            print("[INFO] Market is closed. Unable to execute sell order.")
+        try:
+            if self.is_market_open():
+                order_type = "market"
+                time_in_force = "day"
+            else:
+                order_type = "market"
+                time_in_force = "opg" 
+
+            self.api.submit_order(
+                symbol=ticker, 
+                qty=qty, 
+                side="sell", 
+                type=order_type, 
+                time_in_force=time_in_force
+            )
+            print(f"[INFO] Successfully placed sell order for {qty} shares of {ticker}")
+        except Exception as e:
+            print(f"[ERROR] Failed to sell {qty} shares of {ticker}: {e}")
 
     def get_positons(self): 
         current_position = {}
