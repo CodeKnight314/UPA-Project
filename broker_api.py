@@ -117,3 +117,23 @@ class AlpacaBroker():
         today_close = data['Close'].iloc[-1]
 
         return yesterday_close, today_close, today_close/yesterday_close
+
+    def get_current_price(self, ticker: str):
+        """
+        Retrieves the current price of the given ticker symbol using yfinance.
+        """
+        ticker_data = yf.Ticker(ticker)
+        data = ticker_data.history(period='1d')
+        if 'Close' in data.columns and len(data) > 0:
+            return data['Close'].iloc[-1]
+        else:
+            print(f"[ERROR] Could not retrieve current price for {ticker}")
+            return None
+
+    def get_portfolio_value(self):
+        """
+        Retrieves the most updated portfolio value.
+        """
+        self.portfolio_value = 0.0
+        self.positions = self.get_positons()
+        return self.portfolio_value
