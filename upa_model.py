@@ -11,7 +11,8 @@ class UPA():
         self.broker = AlpacaBroker(config_json=config_json)
         self.output_dir = output_dir
         self.output_logs = os.path.join(self.output_dir, "UPA_TransactionLogs.json")
-        self.ticker = ['DOCU', 'FSLY', 'GOCO', 'MDB', 'NET', 'PLTR', 'PTON', 'ROKU', 'SHOP', 'SNOW', 'SQ', 'TDOC', 'TTD', 'TWLO', 'NVDA']
+        self.ticker = ["CCCS", "DSP", "ADEA", "RELY", "GDYN", "CLBT", "TTMI", "ACMR", "SATS", "GEN", 
+                       "CRDO", "AOSL", "VERX", "TENB", "RMBS", "SCSC", "INTA", "ACIW", "CSCO", "NTNX"]
 
         # Create output directory if it does not exist
         if not os.path.exists(self.output_dir):
@@ -31,7 +32,7 @@ class UPA():
         self.weights = [value / self.get_portfolio_value() if self.get_portfolio_value() != 0 else 0 for value in self.current_value]
 
     def get_portfolio_value(self):
-        return self.broker.portfolio_value
+        return self.broker.get_portfolio_value()  # Get the latest portfolio value from broker
 
     def check_if_rebalanced_today(self):
         today = datetime.datetime.now().date()
@@ -57,8 +58,13 @@ class UPA():
         # Clear the terminal screen
         os.system('cls' if os.name == 'nt' else 'clear')
 
+        # Update current prices and portfolio value in real time
+        self.current_price = [self.broker.get_current_price(ticker) for ticker in self.ticker]
+        self.current_value = [price * qty for price, qty in zip(self.current_price, self.current_qty)]
+        portfolio_value = self.get_portfolio_value()
+
         # Update weights based on price change ratio
-        self.weights = [value / self.get_portfolio_value() if self.get_portfolio_value() != 0 else 0 for value in self.current_value]
+        self.weights = [value / portfolio_value if portfolio_value != 0 else 0 for value in self.current_value]
         new_weights = []
         sum_val = 0.0
 
@@ -68,7 +74,6 @@ class UPA():
             sum_val += new_weight
 
         new_weights = [new_weight / sum_val for new_weight in new_weights]
-        portfolio_value = self.get_portfolio_value()
         self.target_value = [weight * portfolio_value for weight in new_weights]
 
         # Generate sell orders to create liquidity
