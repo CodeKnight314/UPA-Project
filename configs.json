@@ -1,5 +1,5 @@
 {
-    "URL":"https://paper-api.alpaca.markets",
-    "KEYS":"PK97JMASL1W0WQDD3NBU",
-    "SECRET":"cqKhEnhU2MRzInDpsaAX3sQbKQ8bYmdB6gPSch9Z"
+    "URL":"https://paper-api.alpaca.markets/",
+    "KEYS":"KEYS",
+    "SECRET":"SECRET"
 }
