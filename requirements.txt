@@ -1,0 +1,6 @@
+alpaca-trade-api
+pytz
+numpy
+DateTime
+yfinance
+os
