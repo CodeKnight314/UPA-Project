@@ -12,21 +12,22 @@ def main():
     the time until the next market opening and sleeps until then.
     """
     broker = AlpacaBroker("configs.json")
-    if broker.is_market_open():
-        broker.get_positons()
-        broker.adjust_portfolio()
+    while(True):
+        if broker.is_market_open():
+            broker.get_positons()
+            broker.adjust_portfolio()
+            
+        desired_time = broker.market_open_time
+        current_time_utc = datetime.now(pytz.utc)
+        us_eastern = pytz.timezone("US/Eastern")
+        current_time_et = current_time_utc.astimezone(us_eastern).time()
         
-    desired_time = broker.market_open_time
-    current_time_utc = datetime.now(pytz.utc)
-    us_eastern = pytz.timezone("US/Eastern")
-    current_time_et = current_time_utc.astimezone(us_eastern).time()
-    
-    time_diff = datetime.combine(datetime.today(), desired_time) - datetime.combine(datetime.today(), current_time_et)
-    if time_diff.days < 0: 
-        time_diff += timedelta(days=1)
-        
-    print(f"[INFORMATIOn] Sleeping until {time_diff}.")
-    time.sleep(time_diff.total_seconds())
+        time_diff = datetime.combine(datetime.today(), desired_time) - datetime.combine(datetime.today(), current_time_et)
+        if time_diff.days < 0: 
+            time_diff += timedelta(days=1)
+            
+        print(f"[INFORMATIOn] Sleeping for {time_diff}.")
+        time.sleep(time_diff.total_seconds())
 
 if __name__ == "__main__": 
     main()
